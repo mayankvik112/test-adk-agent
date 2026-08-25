@@ -3,8 +3,8 @@ AI Agent Engine with Agent Identity (3-legged OAuth) enabled, following the
 Python SDK deployment pattern in
 https://docs.cloud.google.com/iam/docs/auth-with-3lo-v2#python-sdk-deployment
 
-Run with:
-    uv run python deployment/deploy_agent_engine.py
+Run with (from the repo root, so the `app` package resolves):
+    uv run python -m deployment.deploy_agent_engine
 """
 
 from __future__ import annotations
@@ -51,12 +51,13 @@ def main() -> None:
     print()
     print("Next steps:")
     print("1. Extract the numeric ENGINE_ID from the resource name above.")
-    print("2. Re-run deployment/setup_auth_provider.sh with ENGINE_ID set so the")
-    print("   deployed agent is granted roles/agentidentity.user on the BigQuery")
-    print("   3-legged OAuth auth provider.")
+    print("2. Re-run `ENGINE_ID=<id> uv run python -m deployment.setup_auth_provider`")
+    print("   so the deployed agent is granted roles/agentidentity.user on the")
+    print("   BigQuery 3-legged OAuth auth provider.")
     print("3. Register the agent's A2A endpoint with Gemini Enterprise via")
-    print("   deployment/register_gemini_enterprise.sh (Cloud Run deployments) or")
-    print("   the Gemini Enterprise Agent Registry UI for Agent Engine-hosted agents.")
+    print("   `uv run python -m deployment.register_gemini_enterprise` (Cloud Run")
+    print("   deployments) or the Gemini Enterprise Agent Registry UI for")
+    print("   Agent Engine-hosted agents.")
 
 
 if __name__ == "__main__":

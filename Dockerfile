@@ -2,22 +2,35 @@
 # or GKE, per the "A2A endpoint can run on Cloud Run, GKE, or on-premises
 # infrastructure" deployment shape described in
 # https://cloud.google.com/blog/topics/developers-practitioners/guide-to-gemini-enterprise-and-a2ui-integration
+#
+# Built with uv (https://docs.astral.sh/uv/guides/integration/docker/) for
+# fast, reproducible, lockfile-pinned installs. Works identically on
+# Windows (Docker Desktop, WSL2 backend), macOS, and Linux -- the image
+# itself is always Linux, so there is no bash/PowerShell dependency here.
 FROM python:3.11-slim
+
+# Pin the official static uv binary instead of `pip install uv`, per the
+# uv Docker integration guide above.
+COPY --from=ghcr.io/astral-sh/uv:0.10.12 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-RUN pip install --no-cache-dir uv
+ENV UV_COMPILE_BYTECODE=1 \
+    UV_LINK_MODE=copy \
+    UV_PROJECT_ENVIRONMENT=/app/.venv
 
-COPY pyproject.toml ./
+# Install dependencies first (cached separately from source changes).
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev --no-install-project
+
+# Now copy source and install the project itself.
 COPY app ./app
 COPY deployment ./deployment
-
-RUN uv sync --no-dev || uv pip install --system \
-    "google-cloud-aiplatform[agent_engines,adk]>=1.85.0" \
-    "google-adk[agent-identity,mcp,a2a]>=2.7.1" \
-    "a2a-sdk>=0.2.0" "uvicorn>=0.30.0" "httpx>=0.27.0" "google-auth>=2.30.0"
+RUN uv sync --frozen --no-dev
 
 ENV PORT=8080
 EXPOSE 8080
 
-CMD ["python", "-m", "app.main"]
+# `uv run` resolves the synced /app/.venv automatically -- no manual
+# `source .venv/bin/activate` / PATH juggling needed.
+CMD ["uv", "run", "python", "-m", "app.main"]

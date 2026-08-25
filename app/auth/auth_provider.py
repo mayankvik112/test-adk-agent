@@ -4,7 +4,7 @@ This module implements the ADK-side half of the flow documented at
 https://docs.cloud.google.com/iam/docs/auth-with-3lo-v2 :
 
   1. An Agent Identity "auth provider" resource of type `OAuth (3 legged)`
-     is created out-of-band (see ../deployment/setup_auth_provider.sh) and
+     is created out-of-band (see ../deployment/setup_auth_provider.py) and
      points at Google's OAuth endpoints with a Web-application OAuth client
      registered for the callback URL
      `https://agentidentitycredentials.googleapis.com/v1/projects/<PROJECT_ID>/
@@ -38,7 +38,7 @@ from google.adk.integrations.agent_identity import (
 from google.adk.auth.credential_manager import CredentialManager
 
 # Name of the Agent Identity auth provider resource created by
-# deployment/setup_auth_provider.sh. Must be lowercase letters/digits/hyphens,
+# deployment/setup_auth_provider.py. Must be lowercase letters/digits/hyphens,
 # start with a letter, and not end with a hyphen (per the 3LO setup docs).
 AUTH_PROVIDER_NAME = os.environ.get(
     "BIGQUERY_AUTH_PROVIDER_NAME", "aerospace-bigquery-3lo-authprovider"

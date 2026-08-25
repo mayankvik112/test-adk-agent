@@ -10,8 +10,8 @@ Run locally:
     uv run uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload
 
 Then register the agent with Gemini Enterprise as an A2A endpoint (see
-`deployment/register_gemini_enterprise.sh`), pointing it at this server's
-public URL + `/a2a` path.
+`uv run python -m deployment.register_gemini_enterprise`), pointing it at
+this server's public URL + `/a2a` path.
 """
 
 from __future__ import annotations

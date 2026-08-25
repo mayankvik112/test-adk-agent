@@ -102,12 +102,15 @@ statement chaining before the query ever reaches the BigQuery REST API.
 ## Deployment topology
 
 ```
-deployment/setup_bigquery_connector.sh   -> Gemini Enterprise Data Store (path A)
-deployment/setup_auth_provider.sh        -> Agent Identity 3LO auth provider (path B)
-app/main.py (Dockerfile)  -> Cloud Run / GKE A2A endpoint  ─┐
-   or                                                        ├─> deployment/register_gemini_enterprise.sh
-deployment/deploy_agent_engine.py -> Vertex AI Agent Engine ─┘   -> Gemini Enterprise agent catalog
+uv run python -m deployment.setup_bigquery_connector   -> Gemini Enterprise Data Store (path A)
+uv run python -m deployment.setup_auth_provider        -> Agent Identity 3LO auth provider (path B)
+docker build . / app/main.py  -> Cloud Run / GKE A2A endpoint  ─┐
+   or                                                            ├─> uv run python -m deployment.register_gemini_enterprise
+uv run python -m deployment.deploy_agent_engine  -> Vertex AI Agent Engine ─┘   -> Gemini Enterprise agent catalog
 ```
+
+All of the above are plain Python modules run with `uv run` (no bash-only
+scripts), so the exact same commands work on Windows, macOS, and Linux.
 
 Both deployment targets set `identity_type: AGENT_IDENTITY`
 (`.agent_engine_config.json` for the `adk deploy agent_engine` CLI path, or

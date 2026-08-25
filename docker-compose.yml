@@ -1,0 +1,16 @@
+# Local dev loop: `docker compose up --build` starts the A2A endpoint on
+# http://localhost:8080, with source hot-mounted so code edits on the host
+# (including on Windows) are picked up without rebuilding the image.
+# Requires Docker Desktop (Windows/macOS) or Docker Engine (Linux).
+services:
+  agent:
+    build: .
+    image: aerospace-quality-reliability-agent:dev
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./app:/app/app
+      - ./deployment:/app/deployment
+    command: ["uv", "run", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]

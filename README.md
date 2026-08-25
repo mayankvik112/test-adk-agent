@@ -33,7 +33,7 @@ Every defect record has exactly five fields:
    read-only, live SQL directly against BigQuery using the **signed-in
    engineer's own OAuth token**, obtained through an Agent Identity 3LO auth
    provider (`app/auth/auth_provider.py`, provisioned by
-   `deployment/setup_auth_provider.sh`). BigQuery's own row/column-level
+   `deployment/setup_auth_provider.py`). BigQuery's own row/column-level
    security applies exactly as if the engineer ran the query themselves —
    no shared service account is used for this path.
    Docs: [Authenticate using 3-legged OAuth with auth manager](https://docs.cloud.google.com/iam/docs/auth-with-3lo-v2)
@@ -108,13 +108,23 @@ app/
 │   └── aerospace_defect_catalog.json   # DefectResultsTable / DefectRow / SeverityBadge / ChoicePicker
 └── examples/aerospace_defect_examples/  # few-shot A2UI examples for the LLM
 deployment/
-├── setup_bigquery_connector.sh    # creates the Gemini Enterprise Data Store from the BigQuery table
-├── setup_auth_provider.sh         # creates the Agent Identity 3-legged OAuth auth provider
-├── register_gemini_enterprise.sh  # registers the A2A endpoint with Gemini Enterprise
+├── _gcloud.py                     # cross-platform gcloud subprocess helper (Windows/macOS/Linux)
+├── setup_bigquery_connector.py    # creates the Gemini Enterprise Data Store from the BigQuery table
+├── setup_auth_provider.py         # creates the Agent Identity 3-legged OAuth auth provider
+├── register_gemini_enterprise.py  # registers the A2A endpoint with Gemini Enterprise
 └── deploy_agent_engine.py         # deploys to Vertex AI Agent Engine with Agent Identity enabled
 tests/
 └── test_agent_smoke.py            # pure-logic tests for the A2UI builder + SQL guardrail
+Dockerfile                          # uv-based image for the A2A endpoint (Cloud Run / GKE)
+docker-compose.yml                  # local dev loop: `docker compose up --build`
+pyproject.toml / uv.lock             # dependencies, resolved and pinned with uv
 ```
+
+All deployment scripts are plain Python (no bash/PowerShell-only syntax
+anywhere in the repo), run as modules from the repo root with `uv run`, so
+they work identically on Windows, macOS, and Linux — the only external
+requirement is the `gcloud` CLI on PATH (it has a native Windows
+installer).
 
 ## Setup
 
@@ -130,8 +140,16 @@ AEROSPACE_DEFECTS_DATASTORE_ID=projects/<PROJECT_ID>/locations/<LOCATION>/collec
 Otherwise, create it with:
 
 ```bash
+# macOS / Linux / Windows (PowerShell, cmd, or bash) — set the env vars for
+# your shell, then run the module from the repo root.
 PROJECT_ID=<project> DATASET_ID=aerospace_quality TABLE_ID=aircraft_defects \
-  make setup-bigquery-connector
+  uv run python -m deployment.setup_bigquery_connector
+```
+
+```powershell
+# Windows PowerShell equivalent
+$env:PROJECT_ID="<project>"; $env:DATASET_ID="aerospace_quality"; $env:TABLE_ID="aircraft_defects"
+uv run python -m deployment.setup_bigquery_connector
 ```
 
 which follows the one-time/`custom` schema BigQuery import flow documented
@@ -147,7 +165,7 @@ on the source project first, per the same doc's prerequisites.
 gcloud services enable agentidentity.googleapis.com --project=<project>
 PROJECT_ID=<project> LOCATION=us-west1 \
   OAUTH_CLIENT_ID=<client-id> OAUTH_CLIENT_SECRET=<client-secret> \
-  make setup-auth-provider
+  uv run python -m deployment.setup_auth_provider
 ```
 
 This walks through the OAuth consent screen / Web-application OAuth client
@@ -157,28 +175,57 @@ The BigQuery scope used is `https://www.googleapis.com/auth/bigquery`.
 
 ### 3. Install dependencies and run locally
 
+Two equivalent ways to run locally — pick whichever fits your workflow.
+Both work the same on Windows, macOS, and Linux.
+
+**Option A — uv directly (no Docker), good for iterating on the ADK
+agent/OAuth consent flow:**
+
 ```bash
-make install
-cp .env.example .env   # fill in project/location/datastore/auth-provider values
-make playground         # `adk web` — exercise the 3LO consent flow interactively
+uv sync                 # installs into a local .venv, pinned by uv.lock
+cp .env.example .env     # fill in project/location/datastore/auth-provider values
+uv run adk web app       # `adk web` — exercise the 3LO consent flow interactively
 # or
-make local-backend      # uvicorn app.main:app — the real A2A endpoint
+uv run uvicorn app.main:app --host 0.0.0.0 --port 8080 --reload   # the real A2A endpoint
 ```
+
+**Option B — Docker (matches the production container exactly):**
+
+```bash
+cp .env.example .env
+docker compose up --build   # A2A endpoint on http://localhost:8080, hot-reloads on code edits
+```
+
+On Windows, install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+with the WSL2 backend and run the same `docker compose up --build` command
+from PowerShell, cmd, or a WSL shell — the container itself is always
+Linux, so nothing else changes.
 
 ### 4. Deploy
 
 ```bash
-make deploy-agent-engine        # Vertex AI Agent Engine, AGENT_IDENTITY enabled
+uv run python -m deployment.deploy_agent_engine   # Vertex AI Agent Engine, AGENT_IDENTITY enabled
 # then grant the deployed engine access to the auth provider:
-ENGINE_ID=<numeric id from step above> make setup-auth-provider
+ENGINE_ID=<numeric id from step above> uv run python -m deployment.setup_auth_provider
 ```
 
-or containerize `app/main.py` with the included `Dockerfile` for Cloud
-Run/GKE, then:
+or build the production container from the same `Dockerfile` and push it
+to Cloud Run/GKE:
+
+```bash
+docker build -t aerospace-quality-reliability-agent .
+docker tag aerospace-quality-reliability-agent <region>-docker.pkg.dev/<project>/<repo>/aerospace-quality-reliability-agent
+docker push <region>-docker.pkg.dev/<project>/<repo>/aerospace-quality-reliability-agent
+gcloud run deploy aerospace-quality-reliability-agent \
+  --image <region>-docker.pkg.dev/<project>/<repo>/aerospace-quality-reliability-agent \
+  --project <project> --region <region>
+```
+
+then register the deployed endpoint with Gemini Enterprise:
 
 ```bash
 AGENT_PUBLIC_URL=https://<cloud-run-url> ASSISTANT_ID=<assistant-id> \
-  make register-gemini-enterprise
+  uv run python -m deployment.register_gemini_enterprise
 ```
 
 An administrator then shares the agent from the Gemini Enterprise agent
@@ -219,7 +266,7 @@ described in the A2UI integration guide above.
 ## Testing
 
 ```bash
-make test
+uv run pytest tests -q
 ```
 
 `tests/test_agent_smoke.py` covers the pieces that don't require live GCP
@@ -231,7 +278,26 @@ guardrail (`SELECT`-only, table-scoped).
 Gemini Enterprise, ADK, and A2UI are actively evolving products. This repo
 pins the documented resource-name formats, scopes, and code patterns as of
 the reference docs linked throughout, but always cross-check
-`deployment/register_gemini_enterprise.sh`'s Discovery Engine "agents"
+`deployment/register_gemini_enterprise.py`'s Discovery Engine "agents"
 sub-resource path and the exact ADK/A2A Python package versions in
-`pyproject.toml` against the current Google Cloud console/documentation
-before running in production.
+`pyproject.toml`/`uv.lock` against the current Google Cloud
+console/documentation before running in production.
+
+## Windows notes
+
+Everything in this repo is OS-agnostic Python plus a Linux-based Docker
+image, so it runs the same on Windows as on macOS/Linux:
+
+- Install [uv](https://docs.astral.sh/uv/getting-started/installation/)
+  (`pip install uv`, `winget install astral-sh.uv`, or the standalone
+  installer) and the [Google Cloud CLI](https://cloud.google.com/sdk/docs/install)
+  (native Windows installer) for the non-Docker path.
+- Install [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+  (WSL2 backend) for the container path (`docker compose up --build` /
+  `docker build`).
+- All `deployment/*.py` scripts are plain Python modules invoked with
+  `uv run python -m deployment.<script>` — no bash-only syntax anywhere,
+  so PowerShell, cmd, and WSL all work identically.
+- `.env` values and environment variables work the same way; PowerShell
+  users set them with `$env:NAME="value"` instead of `NAME=value` before
+  the command, as shown in the BigQuery connector step above.
