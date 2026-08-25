@@ -1,0 +1,28 @@
+[project]
+name = "aerospace-quality-reliability-agent"
+version = "1.0.0"
+description = "Pro Code ADK agent for Gemini Enterprise: Aerospace Quality & Reliability Intelligence"
+requires-python = ">=3.11"
+dependencies = [
+    # Vertex AI / Agent Engine deployment + ADK core, with Agent Identity
+    # (3-legged OAuth) and MCP extras, per
+    # https://docs.cloud.google.com/iam/docs/auth-with-3lo-v2#python-sdk-deployment
+    "google-cloud-aiplatform[agent_engines,adk]>=1.85.0",
+    "google-adk[agent-identity,mcp,a2a]>=2.7.1",
+    # A2A protocol server used by app/main.py + app/agent_executor.py
+    "a2a-sdk>=0.2.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+    "google-auth>=2.30.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.23.0",
+]
+
+[tool.uv.sources]
+# Kept intentionally empty; add a private Artifact Registry index here only
+# if your org mirrors PyPI internally, then regenerate uv.lock:
+#   rm -f uv.lock && uv lock

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://a2ui.org/schemas/catalog/0.8/catalog.schema.json",
+  "catalogId": "aerospace-quality-reliability/defect-catalog",
+  "catalogVersion": "0.8",
+  "description": "Custom A2UI component catalog for the Aerospace Quality & Reliability Intelligence agent. Renders BigQuery-connector-backed defect search results natively inside Gemini Enterprise (inline beginRendering/surfaceUpdate pattern).",
+  "components": [
+    {
+      "name": "SeverityBadge",
+      "description": "A compact colored badge for a defect's severity_level.",
+      "properties": {
+        "severity_level": {
+          "type": "string",
+          "enum": ["Critical", "Major", "Minor"]
+        }
+      },
+      "renderHints": {
+        "Critical": { "color": "#B3261E", "icon": "priority_high" },
+        "Major": { "color": "#B06000", "icon": "warning" },
+        "Minor": { "color": "#1B6B3A", "icon": "info" }
+      }
+    },
+    {
+      "name": "DefectRow",
+      "description": "One row of the defect results table, mapping 1:1 to a BigQuery defects record.",
+      "properties": {
+        "defect_id": { "type": "string" },
+        "aircraft_model": { "type": "string" },
+        "component_category": { "type": "string" },
+        "severity_level": { "$ref": "#/components/SeverityBadge" },
+        "defect_description": { "type": "string", "maxLength": 240 }
+      },
+      "required": [
+        "defect_id",
+        "aircraft_model",
+        "component_category",
+        "severity_level",
+        "defect_description"
+      ]
+    },
+    {
+      "name": "DefectResultsTable",
+      "description": "Card containing a scrollable table of DefectRow entries plus a result-count header. This is the primary surface the agent emits for any defect search or query.",
+      "properties": {
+        "title": { "type": "string" },
+        "result_count": { "type": "integer" },
+        "applied_filters": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "rows": {
+          "type": "array",
+          "items": { "$ref": "#/components/DefectRow" }
+        }
+      },
+      "required": ["title", "result_count", "rows"]
+    },
+    {
+      "name": "SeverityBreakdownChoicePicker",
+      "description": "Single-select chip picker letting the user narrow a defect result set by severity_level or aircraft_model with one tap instead of typing a follow-up message.",
+      "properties": {
+        "prompt": { "type": "string" },
+        "choices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "value": { "type": "string" },
+              "count": { "type": "integer" }
+            },
+            "required": ["label", "value"]
+          }
+        },
+        "userActionName": {
+          "type": "string",
+          "const": "filterDefectResults"
+        }
+      },
+      "required": ["prompt", "choices"]
+    }
+  ]
+}

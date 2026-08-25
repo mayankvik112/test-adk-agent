@@ -1,0 +1,51 @@
+{
+  "description": "Example A2UI 'inline' surface (Gemini Enterprise v0.8 catalog) the agent emits after a successful defect search/query. Provided as a few-shot example for the LLM, following the pattern used by app/examples/restaurant_finder_catalog in https://github.com/wadave/agent-a2ui-demo.",
+  "userQuery": "Show me Critical fuselage defects on the Boeing 787-9 Dreamliner",
+  "toolCallSummary": "datastore_search_agent returned 3 matching records from the BigQuery-connector-backed data store.",
+  "a2ui_surface": {
+    "component": "DefectResultsTable",
+    "title": "Critical Fuselage Defects \u2014 Boeing 787-9 Dreamliner",
+    "result_count": 3,
+    "applied_filters": [
+      "aircraft_model = Boeing 787-9 Dreamliner",
+      "component_category = Fuselage",
+      "severity_level = Critical"
+    ],
+    "rows": [
+      {
+        "defect_id": "DEF-100482",
+        "aircraft_model": "Boeing 787-9 Dreamliner",
+        "component_category": "Fuselage",
+        "severity_level": "Critical",
+        "defect_description": "Sub-surface delamination detected at frame station 47 during C-check ultrasonic inspection; disbond exceeds allowable per SRM 51-XX, requires panel replacement."
+      },
+      {
+        "defect_id": "DEF-100617",
+        "aircraft_model": "Boeing 787-9 Dreamliner",
+        "component_category": "Fuselage",
+        "severity_level": "Critical",
+        "defect_description": "Lightning-strike damage to crown skin exceeded repair limits; core crushing observed adjacent to strike zone, referred to engineering disposition."
+      },
+      {
+        "defect_id": "DEF-101033",
+        "aircraft_model": "Boeing 787-9 Dreamliner",
+        "component_category": "Fuselage",
+        "severity_level": "Critical",
+        "defect_description": "Fatigue crack initiation at fastener hole row 12 identified during scheduled NDI; crack length above threshold triggering immediate grounding per AD."
+      }
+    ]
+  },
+  "generatedMessages": {
+    "beginRendering": {
+      "surfaceId": "defect-results-1",
+      "catalogId": "aerospace-quality-reliability/defect-catalog",
+      "rootComponent": "DefectResultsTable"
+    },
+    "surfaceUpdate": {
+      "surfaceId": "defect-results-1",
+      "component": "DefectResultsTable",
+      "data": "<the a2ui_surface object above, inlined per the GE v0.8 inline pattern>"
+    }
+  },
+  "assistantText": "Found 3 Critical fuselage defects for the Boeing 787-9 Dreamliner (DEF-100482, DEF-100617, DEF-101033). Two are structural (delamination, fatigue crack) and one is impact-related (lightning strike)."
+}

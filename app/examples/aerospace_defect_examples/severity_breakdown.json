@@ -1,0 +1,34 @@
+{
+  "description": "Example A2UI 'SeverityBreakdownChoicePicker' surface, emitted alongside a DefectResultsTable when a search or live BigQuery aggregation spans more than one severity_level or aircraft_model, so the user can narrow with one tap.",
+  "userQuery": "How many Main Landing Gear defects do we have by severity?",
+  "toolCallSummary": "query_bigquery_defects (3-legged OAuth, live BigQuery) returned a GROUP BY severity_level aggregation for component_category = 'Main Landing Gear'.",
+  "sql_query_used": "SELECT severity_level, COUNT(*) AS defect_count FROM `PROJECT_ID.aerospace_quality.aircraft_defects` WHERE component_category = 'Main Landing Gear' GROUP BY severity_level ORDER BY defect_count DESC",
+  "a2ui_surface": {
+    "component": "SeverityBreakdownChoicePicker",
+    "prompt": "Main Landing Gear defects by severity \u2014 tap one to see the underlying records",
+    "choices": [
+      { "label": "Major", "value": "Major", "count": 41 },
+      { "label": "Minor", "value": "Minor", "count": 27 },
+      { "label": "Critical", "value": "Critical", "count": 6 }
+    ],
+    "userActionName": "filterDefectResults"
+  },
+  "generatedMessages": {
+    "beginRendering": {
+      "surfaceId": "severity-breakdown-1",
+      "catalogId": "aerospace-quality-reliability/defect-catalog",
+      "rootComponent": "SeverityBreakdownChoicePicker"
+    },
+    "surfaceUpdate": {
+      "surfaceId": "severity-breakdown-1",
+      "component": "SeverityBreakdownChoicePicker",
+      "data": "<the a2ui_surface object above, inlined per the GE v0.8 inline pattern>"
+    }
+  },
+  "userActionExample": {
+    "name": "filterDefectResults",
+    "value": "Critical",
+    "resultingAgentBehavior": "Agent re-calls datastore_search_agent (or query_bigquery_defects) filtered to component_category='Main Landing Gear' AND severity_level='Critical', then emits a new DefectResultsTable surface with the 6 matching rows."
+  },
+  "assistantText": "Main Landing Gear has 74 recorded defects: 41 Major, 27 Minor, and 6 Critical. Tap a severity to see the individual defect records."
+}
